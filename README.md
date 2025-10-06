@@ -10,3 +10,5 @@ FCC/
 ├── App.js
 ├── package.json
 └── README.md
+git clone https://github.com/TON_UTILISATEUR/FCC.git
+cd FCC
