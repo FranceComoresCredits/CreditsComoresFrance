@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
+import { View, Text, TextInput, Button, Alert, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Google from 'expo-auth-session/providers/google';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://ton-backend.onrender.com/api'; // remplace par ton backend
 
@@ -12,6 +13,7 @@ export default function App() {
   const [name, setName] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Google Sign-In
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -36,44 +38,57 @@ export default function App() {
     return result.success;
   };
 
+  // Récupérer token au lancement
   useEffect(() => {
-    // Face ID automatique
-    const checkFaceID = async () => {
-      const success = await authenticate();
-      if (success && token) {
-        Alert.alert('Connexion réussie via Face ID !');
+    const init = async () => {
+      const storedToken = await AsyncStorage.getItem('userToken');
+      if (storedToken) {
+        const success = await authenticate();
+        if (success) {
+          setToken(storedToken);
+          Alert.alert('Connexion réussie via Face ID !');
+        }
       }
+      setLoading(false);
     };
-    checkFaceID();
+    init();
+  }, []);
 
-    // Google Sign-In automatique
+  // Google Sign-In automatique
+  useEffect(() => {
     if (response?.type === 'success') {
       const { authentication } = response;
       googleLogin(authentication.accessToken);
     }
   }, [response]);
 
-  // Fonction pour login/register classique
+  // Fonction login/register classique
   const handleAuth = async () => {
     try {
+      setLoading(true);
       if (isRegister) {
         const res = await axios.post(`${API_URL}/auth/register`, { name, email, password });
+        await AsyncStorage.setItem('userToken', res.data.token);
         setToken(res.data.token);
         Alert.alert('Compte créé ✅');
       } else {
         const res = await axios.post(`${API_URL}/auth/login`, { email, password });
+        await AsyncStorage.setItem('userToken', res.data.token);
         setToken(res.data.token);
         Alert.alert('Connexion réussie ✅');
       }
     } catch (err) {
       Alert.alert('Erreur', err.response?.data || 'Erreur serveur');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Fonction pour login via Google
+  // Fonction login via Google
   const googleLogin = async (accessToken) => {
     try {
       const res = await axios.post(`${API_URL}/auth/google`, { accessToken });
+      await AsyncStorage.setItem('userToken', res.data.token);
       setToken(res.data.token);
       Alert.alert('Connecté avec Google ✅');
     } catch (err) {
@@ -81,17 +96,30 @@ export default function App() {
     }
   };
 
-  if (token) {
-    // Interface principale après connexion
+  // Déconnexion
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('userToken');
+    setToken(null);
+    Alert.alert('Déconnecté ✅');
+  };
+
+  if (loading) {
     return (
-      <View style={{ padding: 20 }}>
-        <Text>Bienvenue ! Vous êtes connecté.</Text>
-        {/* Ici tu peux ajouter envoi crédit, historique, etc. */}
+      <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
-  // Formulaire login/register
+  if (token) {
+    return (
+      <View style={{ padding: 20 }}>
+        <Text>Bienvenue ! Vous êtes connecté.</Text>
+        <Button title="Se déconnecter" onPress={handleLogout} />
+      </View>
+    );
+  }
+
   return (
     <View style={{ padding: 20 }}>
       {isRegister && (
