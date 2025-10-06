@@ -5,7 +5,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://ton-backend.onrender.com/api'; // remplace par ton backend
+const API_URL = 'https://ton-backend.onrender.com/api'; // Remplace par ton backend
 
 export default function App() {
   const [email, setEmail] = useState('');
@@ -13,14 +13,15 @@ export default function App() {
   const [name, setName] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [token, setToken] = useState(null);
+  const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Google Sign-In
   const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId: 'TON_CLIENT_ID_EXPO',
-    iosClientId: 'TON_CLIENT_ID_IOS',
-    androidClientId: 'TON_CLIENT_ID_ANDROID',
-    webClientId: 'TON_CLIENT_ID_WEB',
+    expoClientId: '48257029343-p84m2pduii4ve80ujcok355u6jh24pvh.apps.googleusercontent.com',
+    iosClientId: '48257029343-p84m2pduii4ve80ujcok355u6jh24pvh.apps.googleusercontent.com',
+    androidClientId: '48257029343-p84m2pduii4ve80ujcok355u6jh24pvh.apps.googleusercontent.com',
+    webClientId: '48257029343-p84m2pduii4ve80ujcok355u6jh24pvh.apps.googleusercontent.com',
   });
 
   // Face ID
@@ -38,14 +39,16 @@ export default function App() {
     return result.success;
   };
 
-  // Récupérer token au lancement
+  // Récupérer token et nom au lancement
   useEffect(() => {
     const init = async () => {
       const storedToken = await AsyncStorage.getItem('userToken');
+      const storedName = await AsyncStorage.getItem('userName');
       if (storedToken) {
         const success = await authenticate();
         if (success) {
           setToken(storedToken);
+          setUserName(storedName || '');
           Alert.alert('Connexion réussie via Face ID !');
         }
       }
@@ -62,19 +65,23 @@ export default function App() {
     }
   }, [response]);
 
-  // Fonction login/register classique
+  // Login/Register classique
   const handleAuth = async () => {
     try {
       setLoading(true);
       if (isRegister) {
         const res = await axios.post(`${API_URL}/auth/register`, { name, email, password });
         await AsyncStorage.setItem('userToken', res.data.token);
+        await AsyncStorage.setItem('userName', res.data.name);
         setToken(res.data.token);
+        setUserName(res.data.name);
         Alert.alert('Compte créé ✅');
       } else {
         const res = await axios.post(`${API_URL}/auth/login`, { email, password });
         await AsyncStorage.setItem('userToken', res.data.token);
+        await AsyncStorage.setItem('userName', res.data.name || '');
         setToken(res.data.token);
+        setUserName(res.data.name || '');
         Alert.alert('Connexion réussie ✅');
       }
     } catch (err) {
@@ -84,12 +91,14 @@ export default function App() {
     }
   };
 
-  // Fonction login via Google
+  // Login via Google
   const googleLogin = async (accessToken) => {
     try {
       const res = await axios.post(`${API_URL}/auth/google`, { accessToken });
       await AsyncStorage.setItem('userToken', res.data.token);
+      await AsyncStorage.setItem('userName', res.data.name || 'Utilisateur Google');
       setToken(res.data.token);
+      setUserName(res.data.name || 'Utilisateur Google');
       Alert.alert('Connecté avec Google ✅');
     } catch (err) {
       Alert.alert('Erreur Google', err.response?.data || 'Erreur serveur');
@@ -99,7 +108,9 @@ export default function App() {
   // Déconnexion
   const handleLogout = async () => {
     await AsyncStorage.removeItem('userToken');
+    await AsyncStorage.removeItem('userName');
     setToken(null);
+    setUserName('');
     Alert.alert('Déconnecté ✅');
   };
 
@@ -114,7 +125,7 @@ export default function App() {
   if (token) {
     return (
       <View style={{ padding: 20 }}>
-        <Text>Bienvenue ! Vous êtes connecté.</Text>
+        <Text>Bienvenue, {userName} ! Vous êtes connecté.</Text>
         <Button title="Se déconnecter" onPress={handleLogout} />
       </View>
     );
@@ -134,23 +145,4 @@ export default function App() {
       </View>
     </View>
   );
-}
-{
-  "expo": {
-    "name": "TonApp",
-    "slug": "ton-app-slug",
-    "platforms": ["ios", "android"],
-    "ios": {
-      "bundleIdentifier": "com.tonnomutilisateur.tonapp",
-      "buildNumber": "1.0.0"
-    },
-    "android": {
-      "package": "com.tonnomutilisateur.tonapp",
-      "versionCode": 1
-    },
-    "extra": {
-      "googleClientId": "TON_CLIENT_ID_IOS",
-      "googleClientIdWeb": "TON_CLIENT_ID_WEB"
-    }
-  }
 }
