@@ -135,3 +135,22 @@ export default function App() {
     </View>
   );
 }
+{
+  "expo": {
+    "name": "TonApp",
+    "slug": "ton-app-slug",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "bundleIdentifier": "com.tonnomutilisateur.tonapp",
+      "buildNumber": "1.0.0"
+    },
+    "android": {
+      "package": "com.tonnomutilisateur.tonapp",
+      "versionCode": 1
+    },
+    "extra": {
+      "googleClientId": "TON_CLIENT_ID_IOS",
+      "googleClientIdWeb": "TON_CLIENT_ID_WEB"
+    }
+  }
+}
