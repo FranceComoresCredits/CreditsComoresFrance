@@ -10,7 +10,8 @@ export default function App() {
   const [token, setToken] = useState('');
   const [transactions, setTransactions] = useState([]);
 
-  const API_URL = 'https://TON_URL_PUBLIC_CODESPACE/api';
+  // ✅ URL du backend déjà mise
+  const API_URL = 'https://fcc-backend.onrender.com/api';
 
   const login = async () => {
     try {
